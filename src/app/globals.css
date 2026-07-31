@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+:root {
+  /* Fundo da página: um cinza muito claro para dar contraste aos cartões */
+  --background: #f8fafc; 
+  
+  /* Cor do texto principal: slate escuro (mais suave que preto puro) */
+  --foreground: #0f172a; 
+  
+  /* Cor das caixas e cartões: branco puro */
+  --surface: #ffffff; 
+  
+  /* Texto secundário e ícones inativos */
+  --muted: #64748b; 
+  
+  /* A tua cor principal de destaque (Roxo) mantida */
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-foreground: #ffffff;
+  
+  /* Cor dos anéis de foco (Roxo suave) */
+  --ring: #c4b5fd;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
