@@ -1,42 +1,24 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fieldInputClass } from "@/components/ui/field-styles";
 
-type Top3InputProps = {
-  index: number;
-};
+type Props = { index: number; onUpdate: (isValid: boolean, data: any) => void; };
+const RANK_LABELS = ["🥇 1º", "🥈 2º", "🥉 3º"] as const;
 
-const RANK_LABELS = ["1º", "2º", "3º"] as const;
-
-export default function Top3Input({ index }: Top3InputProps) {
+export default function Top3Input({ index, onUpdate }: Props) {
   const [rankings, setRankings] = useState(["", "", ""]);
 
-  function updateRanking(rankIndex: number, value: string) {
-    setRankings((current) =>
-      current.map((item, i) => (i === rankIndex ? value : item)),
-    );
-  }
+  useEffect(() => {
+    const isValid = rankings.every(r => r.trim() !== "");
+    onUpdate(isValid, { respostasTop3: rankings });
+  }, [rankings, onUpdate]);
 
   return (
     <div className="flex flex-col gap-3">
-      {RANK_LABELS.map((label, rankIndex) => (
-        <label
-          key={label}
-          className="flex items-center gap-3"
-          htmlFor={`top3-${index}-${rankIndex}`}
-        >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent/20 text-sm font-bold text-accent">
-            {label}
-          </span>
-          <input
-            id={`top3-${index}-${rankIndex}`}
-            type="text"
-            value={rankings[rankIndex]}
-            onChange={(event) => updateRanking(rankIndex, event.target.value)}
-            placeholder={`Escolha ${label} lugar`}
-            className={fieldInputClass}
-          />
+      {RANK_LABELS.map((label, i) => (
+        <label key={label} className="flex items-center gap-3">
+          <span className="flex w-16 shrink-0 items-center justify-center rounded-xl bg-accent/20 py-2 text-xs font-bold text-accent">{label}</span>
+          <input type="text" value={rankings[i]} onChange={(e) => setRankings(prev => prev.map((item, idx) => idx === i ? e.target.value : item))} placeholder={`Escolha o lugar`} className={fieldInputClass} />
         </label>
       ))}
     </div>

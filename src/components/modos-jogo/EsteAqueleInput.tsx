@@ -1,46 +1,40 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fieldInputClass } from "@/components/ui/field-styles";
 
-type EsteAqueleInputProps = {
-  index: number;
-};
+type Props = { index: number; onUpdate: (isValid: boolean, data: any) => void; };
 
-export default function EsteAqueleInput({ index }: EsteAqueleInputProps) {
-  const [opcaoA, setOpcaoA] = useState("");
-  const [opcaoB, setOpcaoB] = useState("");
+export default function EsteAqueleInput({ index, onUpdate }: Props) {
+  const [opcoes, setOpcoes] = useState(["", ""]);
+  const [preferencia, setPreferencia] = useState<number | null>(null);
+
+  useEffect(() => {
+    const isValid = opcoes[0].trim() !== "" && opcoes[1].trim() !== "" && preferencia !== null;
+    onUpdate(isValid, { opcoes, respostaCorreta: preferencia });
+  }, [opcoes, preferencia, onUpdate]);
 
   return (
-    <div className="flex flex-col gap-3">
-      <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-muted">Opção A</span>
-        <input
-          id={`este-aquele-a-${index}`}
-          type="text"
-          value={opcaoA}
-          onChange={(event) => setOpcaoA(event.target.value)}
-          placeholder="Primeira opção"
-          className={fieldInputClass}
-        />
+    <div className="flex flex-col gap-4">
+      <p className="text-sm font-medium text-muted">Escreve as duas opções e seleciona a tua favorita.</p>
+      
+      <label className={`flex flex-col gap-2 rounded-xl border p-4 transition-colors ${preferencia === 0 ? "border-accent bg-accent/10" : "border-white/10 bg-surface"}`}>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-bold text-foreground">Opção A</span>
+          <input type="radio" checked={preferencia === 0} onChange={() => setPreferencia(0)} className="size-4 accent-accent" />
+        </div>
+        <input type="text" value={opcoes[0]} onChange={(e) => setOpcoes([e.target.value, opcoes[1]])} placeholder="Primeira opção" className={fieldInputClass} />
       </label>
 
-      <div className="flex items-center justify-center py-1">
-        <span className="rounded-full bg-accent/20 px-4 py-1 text-xs font-bold uppercase tracking-widest text-accent">
-          OU
-        </span>
+      <div className="flex items-center justify-center">
+        <span className="rounded-full bg-accent/20 px-4 py-1 text-xs font-bold uppercase tracking-widest text-accent">OU</span>
       </div>
 
-      <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-muted">Opção B</span>
-        <input
-          id={`este-aquele-b-${index}`}
-          type="text"
-          value={opcaoB}
-          onChange={(event) => setOpcaoB(event.target.value)}
-          placeholder="Segunda opção"
-          className={fieldInputClass}
-        />
+      <label className={`flex flex-col gap-2 rounded-xl border p-4 transition-colors ${preferencia === 1 ? "border-accent bg-accent/10" : "border-white/10 bg-surface"}`}>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-bold text-foreground">Opção B</span>
+          <input type="radio" checked={preferencia === 1} onChange={() => setPreferencia(1)} className="size-4 accent-accent" />
+        </div>
+        <input type="text" value={opcoes[1]} onChange={(e) => setOpcoes([opcoes[0], e.target.value])} placeholder="Segunda opção" className={fieldInputClass} />
       </label>
     </div>
   );
