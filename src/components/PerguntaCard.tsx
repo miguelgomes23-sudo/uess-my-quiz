@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 // TEXTO
 import ClassicoInput from "@/components/modos-jogo/ClassicoInput";
@@ -46,6 +46,13 @@ import ValorImagensInput from "@/components/modos-jogo/ValorImagensInput";
 import SequenciaNumericaInput from "@/components/modos-jogo/SequenciaNumericaInput";
 import SequenciaEmojisInput from "@/components/modos-jogo/SequenciaEmojisInput";
 
+// DESAFIOS & SOCIAL
+import HistoriaColetivaInput from "@/components/modos-jogo/HistoriaColetivaInput";
+import PiorConselhoInput from "@/components/modos-jogo/PiorConselhoInput";
+import TribunalPublicoInput from "@/components/modos-jogo/TribunalPublicoInput";
+import BatalhaEliminacaoInput from "@/components/modos-jogo/BatalhaEliminacaoInput";
+import MenteColmeiaInput from "@/components/modos-jogo/MenteColmeiaInput";
+
 // O DICIONÁRIO DE DICAS INTELIGENTES
 const PLACEHOLDERS: Record<string, string> = {
   "classico": "Ex: Qual é a minha comida favorita?",
@@ -78,10 +85,17 @@ const PLACEHOLDERS: Record<string, string> = {
   "o-que-acontece": "Ex: Qual vai ser o desfecho deste vídeo?",
   "finais-alternativos": "Ex: Que caminho deve a personagem seguir?",
   "teste-atencao": "Ex: Quantos chapéus vermelhos apareceram no vídeo?",
-  "equacao-tempo": "Ex: Qual é o resultado matemático?",
-  "valor-imagens": "Ex: Qual é o valor da maçã nesta equação?",
-  "sequencia-numerica": "Ex: Que número completa a sequência lógica?",
-  "sequencia-emojis": "Ex: Qual é o padrão que liga estes emojis?"
+  "equacao-tempo": "Ex: Qual é a metade do dobro de uma dúzia?",
+  "valor-imagens": "Ex: Quantos triângulos existem nesta imagem?",
+  "sequencia-numerica": "Ex: Se 5=25 e 6=36, então 8=?",
+  "sequencia-emojis": "Ex: Desvenda o resultado da equação.",
+  
+  // DESAFIOS
+  "historia-coletiva": "Ex: Na Europa as pessoas são...",
+  "pior-conselho": "Ex: O meu chefe pediu-me para trabalhar no domingo. O que respondo?",
+  "tribunal-publico": "Ex: Dormir com meias é um crime contra a humanidade.",
+  "batalha-eliminacao": "Ex: Escreve aqui o tema da Batalha (ex: Fast Food).",
+  "mente-colmeia": "Ex: Nomeiem 10 países que comecem com a letra A.",
 };
 
 type PerguntaCardProps = {
@@ -98,11 +112,18 @@ export default function PerguntaCard({ index, modo, idPergunta, onUpdate, onRemo
   const [modoData, setModoData] = useState<any>(null);
 
   const placeholderTexto = PLACEHOLDERS[modo] || "Escreve aqui a tua pergunta...";
+  
+  // Verifica se o modo atual é um "Desafio" para mudar a UI
+  const isDesafio = ["historia-coletiva", "pior-conselho", "tribunal-publico", "batalha-eliminacao", "mente-colmeia"].includes(modo);
 
-  const handleModoUpdate = (isValid: boolean, data: any) => {
-    setModoIsValid(isValid);
-    setModoData(data);
-  };
+  const handleModoUpdate = useCallback((isValid: boolean, data: any) => {
+    setModoIsValid((prev) => (prev === isValid ? prev : isValid));
+    
+    setModoData((prev: any) => {
+      if (JSON.stringify(prev) === JSON.stringify(data)) return prev;
+      return data;
+    });
+  }, []);
 
   useEffect(() => {
     const isPerguntaPreenchida = pergunta.trim() !== "";
@@ -161,6 +182,13 @@ export default function PerguntaCard({ index, modo, idPergunta, onUpdate, onRemo
       case "sequencia-numerica": return <SequenciaNumericaInput index={index} onUpdate={handleModoUpdate} />;
       case "sequencia-emojis": return <SequenciaEmojisInput index={index} onUpdate={handleModoUpdate} />;
 
+      // DESAFIOS & SOCIAL
+      case "historia-coletiva": return <HistoriaColetivaInput index={index} onUpdate={handleModoUpdate} />;
+      case "pior-conselho": return <PiorConselhoInput index={index} onUpdate={handleModoUpdate} />;
+      case "tribunal-publico": return <TribunalPublicoInput index={index} onUpdate={handleModoUpdate} />;
+      case "batalha-eliminacao": return <BatalhaEliminacaoInput index={index} onUpdate={handleModoUpdate} />;
+      case "mente-colmeia": return <MenteColmeiaInput index={index} onUpdate={handleModoUpdate} />;
+
       default: return null;
     }
   };
@@ -168,7 +196,7 @@ export default function PerguntaCard({ index, modo, idPergunta, onUpdate, onRemo
   return (
     <article className="relative flex flex-col gap-4 w-full rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm sm:p-6 transition-all hover:border-gray-300">
       
-      {onRemove && (
+      {onRemove && !isDesafio && (
         <button
           onClick={() => onRemove(idPergunta)}
           className="absolute -right-3 -top-3 z-10 flex size-8 items-center justify-center rounded-full bg-red-50 text-red-500 transition-transform hover:scale-110 hover:bg-red-100 active:scale-95 border border-red-100"
@@ -180,7 +208,8 @@ export default function PerguntaCard({ index, modo, idPergunta, onUpdate, onRemo
 
       <header className="flex w-full items-center mb-1">
         <span className="text-sm font-bold text-accent uppercase tracking-widest">
-          Pergunta {index + 1}
+          {/* MUDA PARA "DESAFIO" SE FOR UM DESAFIO */}
+          {isDesafio ? "Desafio" : `Pergunta ${index + 1}`}
         </span>
       </header>
 

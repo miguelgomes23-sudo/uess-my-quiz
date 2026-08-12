@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation"; 
-import { Suspense, useState, useEffect } from "react";
-// Verifica se o PerguntaCard está na pasta ui ou na raiz de components. Ajusta se necessário.
+import { Suspense, useState, useEffect, useCallback } from "react";
 import PerguntaCard from "@/components/PerguntaCard"; 
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, collection, addDoc } from "firebase/firestore";
 
-// --- O CATÁLOGO CENTRALIZADO (Escalável para todas as raízes) ---
+// --- O CATÁLOGO CENTRALIZADO ---
 const TEMPLATES_POR_RAIZ: Record<string, { id: string; nome: string; icone: string }[]> = {
   texto: [
     { id: "classico", nome: "O Clássico (4 Opções)", icone: "📋" },
@@ -53,15 +52,21 @@ const TEMPLATES_POR_RAIZ: Record<string, { id: string; nome: string; icone: stri
     { id: "valor-imagens", nome: "O Valor das Imagens", icone: "🍎" },
     { id: "sequencia-numerica", nome: "Sequência Numérica", icone: "🔢" },
     { id: "sequencia-emojis", nome: "Sequência de Emojis", icone: "🙃" },
+  ],
+  desafios: [
+    { id: "historia-coletiva", nome: "A História Coletiva", icone: "✍️" },
+    { id: "pior-conselho", nome: "O Pior Conselho Possível", icone: "🤦" },
+    { id: "tribunal-publico", nome: "O Tribunal Público", icone: "⚖️" },
+    { id: "batalha-eliminacao", nome: "Batalha de Eliminação", icone: "⚔️" },
+    { id: "mente-colmeia", nome: "A Mente Colmeia", icone: "🐝" },
   ]
 };
 
-// Funções para descobrir dinamicamente a família e o nome do template escolhido
 const obterRaizDoModo = (modoId: string): string => {
   for (const [raiz, templates] of Object.entries(TEMPLATES_POR_RAIZ)) {
     if (templates.some(t => t.id === modoId)) return raiz;
   }
-  return "texto"; // Fallback de segurança
+  return "texto"; 
 };
 
 const obterNomeDoModo = (modoId: string): string => {
@@ -73,10 +78,10 @@ const obterNomeDoModo = (modoId: string): string => {
 };
 
 type PerguntaData = {
-  id: string; // ID único só para o React renderizar as chaves
+  id: string; 
   modo: string;
   isValid: boolean;
-  dados: any; // O conteúdo real que o componente vai preencher
+  dados: any; 
 };
 
 function PerguntasContent() {
@@ -84,11 +89,12 @@ function PerguntasContent() {
   const router = useRouter(); 
   const modoInicial = searchParams.get("modo") || "classico";
   
-  // Descobre dinamicamente a que raiz (família) pertence a primeira escolha do utilizador
   const raizAtual = obterRaizDoModo(modoInicial);
   const templatesDisponiveis = TEMPLATES_POR_RAIZ[raizAtual] || [];
 
-  // ARRAY DINÂMICO DE PERGUNTAS
+  // A LÓGICA CHAVE: SE FOR DESAFIO, A UI MUDA COMPLETAMENTE
+  const isDesafio = raizAtual === "desafios";
+
   const [perguntas, setPerguntas] = useState<PerguntaData[]>([
     { id: crypto.randomUUID(), modo: modoInicial, isValid: false, dados: null }
   ]);
@@ -97,31 +103,40 @@ function PerguntasContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // --- LÓGICA DE ADICIONAR / ATUALIZAR / REMOVER ---
+  const handleUpdate = useCallback((id: string, isValid: boolean, dados: any) => {
+    setPerguntas((prev) => {
+      const index = prev.findIndex((p) => p.id === id);
+      if (index === -1) return prev;
 
-  const handleUpdate = (id: string, isValid: boolean, dados: any) => {
-    setPerguntas(prev => prev.map(p => p.id === id ? { ...p, isValid, dados } : p));
+      const atual = prev[index];
+      if (atual.isValid === isValid && JSON.stringify(atual.dados) === JSON.stringify(dados)) {
+        return prev;
+      }
+
+      const novas = [...prev];
+      novas[index] = { ...atual, isValid, dados };
+      return novas;
+    });
+
     setMostrarErro(false);
-  };
+  }, []);
 
   const adicionarMesmoFormato = () => {
-    if (perguntas.length >= 12) return;
+    if (perguntas.length >= 12 || isDesafio) return;
     const ultimoModo = perguntas[perguntas.length - 1].modo;
     setPerguntas([...perguntas, { id: crypto.randomUUID(), modo: ultimoModo, isValid: false, dados: null }]);
   };
 
   const adicionarOutroFormato = (novoModo: string) => {
-    if (perguntas.length >= 12) return;
+    if (perguntas.length >= 12 || isDesafio) return;
     setPerguntas([...perguntas, { id: crypto.randomUUID(), modo: novoModo, isValid: false, dados: null }]);
     setIsModalOpen(false);
   };
 
   const removerPergunta = (id: string) => {
-    if (perguntas.length === 1) return; // Não deixa apagar a última
+    if (perguntas.length === 1 || isDesafio) return; 
     setPerguntas(prev => prev.filter(p => p.id !== id));
   };
-
-  // --- LÓGICA DE GUARDAR NO FIREBASE ---
 
   const handleGerarLink = async () => {
     const todasValidas = perguntas.every(p => p.isValid);
@@ -133,7 +148,7 @@ function PerguntasContent() {
 
     const user = auth.currentUser;
     if (!user) {
-      alert("Precisas de fazer login para guardar um quiz!");
+      alert("Precisas de fazer login para guardar!");
       router.push("/login");
       return;
     }
@@ -144,19 +159,17 @@ function PerguntasContent() {
       const userDoc = await getDoc(doc(db, "users", user.uid));
       const userData = userDoc.exists() ? userDoc.data() : { nome: "Anónimo", username: "anonimo" };
 
-      // Prepara as perguntas limpas para o Firebase
       const perguntasFirebase = perguntas.map(p => ({
         modo: p.modo,
         ...p.dados
       }));
 
-      // Guarda o quiz com a indicação exata de qual "Raiz" pertence para gerirmos a interface de jogo depois
       const docRef = await addDoc(collection(db, "quizzes"), {
         criadorUid: user.uid,
         criadorNome: userData.nome,
         criadorUsername: userData.username,
         criadorFoto: userData.fotoPerfil || "",
-        raiz: raizAtual, // Guarda a raiz dinamicamente!
+        raiz: raizAtual,
         quantidade: perguntasFirebase.length,
         perguntas: perguntasFirebase,
         dataCriacao: new Date().toISOString(),
@@ -165,8 +178,8 @@ function PerguntasContent() {
 
       router.push(`/sucesso?id=${docRef.id}`);
     } catch (error) {
-      console.error("Erro ao guardar o quiz:", error);
-      alert("Houve um erro ao guardar o quiz. Tenta novamente.");
+      console.error("Erro ao guardar:", error);
+      alert("Houve um erro. Tenta novamente.");
       setIsSaving(false);
     }
   };
@@ -187,19 +200,21 @@ function PerguntasContent() {
         <section className="mt-8 flex flex-col gap-6 sm:mt-10">
           <div className="flex flex-col gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Cria as tuas <span className="text-accent">perguntas</span>
+              {isDesafio ? (
+                 <>Cria o teu <span className="text-accent">desafio</span></>
+              ) : (
+                 <>Cria as tuas <span className="text-accent">perguntas</span></>
+              )}
             </h1>
             <p className="text-sm text-muted">
-              Começaste no formato <span className="font-medium text-foreground">{obterNomeDoModo(modoInicial)}</span>. Podes misturar!
+              Começaste no formato <span className="font-medium text-foreground">{obterNomeDoModo(modoInicial)}</span>. {!isDesafio && "Podes misturar!"}
             </p>
           </div>
 
           <div className="flex flex-col gap-8 mt-2">
-            {/* RENDERIZA A LISTA DINÂMICA DE PERGUNTAS */}
             {perguntas.map((p, index) => (
               <div key={p.id} className="relative">
-                {/* Botão de apagar pergunta */}
-                {perguntas.length > 1 && (
+                {perguntas.length > 1 && !isDesafio && (
                   <button 
                     onClick={() => removerPergunta(p.id)}
                     className="absolute -right-2 -top-2 z-10 flex size-8 items-center justify-center rounded-full bg-red-100 text-red-600 shadow-sm transition-transform hover:scale-110 active:scale-95 border border-red-200"
@@ -218,8 +233,8 @@ function PerguntasContent() {
               </div>
             ))}
 
-            {/* A CAIXA GRANDE DE ADICIONAR */}
-            {perguntas.length < 12 && (
+            {/* SE FOR DESAFIO, A CAIXA DE "ADICIONAR PERGUNTA" DESAPARECE! */}
+            {perguntas.length < 12 && !isDesafio && (
               <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center transition-colors hover:bg-gray-100/50">
                 <div className="flex flex-col gap-1">
                   <h3 className="text-lg font-bold text-foreground">Adicionar Pergunta</h3>
@@ -249,7 +264,7 @@ function PerguntasContent() {
           {mostrarErro && (
             <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-center animate-in fade-in zoom-in duration-200">
               <p className="text-sm font-medium text-red-600">
-                Oops! Falta-te alguma coisa. Verifica se preencheste as perguntas e escolheste as respostas certas em todas! 👀
+                Oops! Falta-te alguma coisa. Verifica se preencheste tudo e escolheste as opções necessárias! 👀
               </p>
             </div>
           )}
@@ -259,12 +274,15 @@ function PerguntasContent() {
             disabled={isSaving}
             className="inline-flex min-h-16 w-full items-center justify-center rounded-2xl bg-accent px-6 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-accent-hover active:scale-[0.98] disabled:opacity-50"
           >
-            {isSaving ? "A guardar o teu Quiz..." : `Guardar Quiz (${perguntas.length} perguntas)`}
+            {isSaving 
+              ? (isDesafio ? "A publicar Desafio..." : "A guardar o teu Quiz...") 
+              : (isDesafio ? "Publicar Desafio" : `Guardar Quiz (${perguntas.length} perguntas)`)
+            }
           </button>
         </footer>
       </main>
 
-      {/* MODAL (DINÂMICO PARA A RAIZ ATUAL) */}
+      {/* MODAL MANTÉM-SE IGUAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
           <div className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-[32px] border border-gray-200 bg-white shadow-2xl animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95">
@@ -276,7 +294,6 @@ function PerguntasContent() {
             </header>
             
             <div className="grid grid-cols-1 gap-2 overflow-y-auto p-4 scrollbar-hide">
-              {/* Renderiza apenas os templates que fazem parte da Raiz (família) atual */}
               {templatesDisponiveis.map((tmpl) => (
                 <button
                   key={tmpl.id}

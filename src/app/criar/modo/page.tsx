@@ -223,6 +223,44 @@ const quizTree: QuizRoot[] = [
         ]
       }
     ]
+  },
+  {
+    id: "desafios",
+    title: "🔥 Desafios & Social",
+    description: "Dinâmicas colaborativas e virais para interagir com a comunidade.",
+    icon: (
+      <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="size-6">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+    models: [
+      {
+        id: "criatividade-colaborativa",
+        title: "Criatividade Colaborativa",
+        templates: [
+          { id: "historia-coletiva", title: "A História Coletiva", description: "Escreve o início. A comunidade continua com limites." },
+          { id: "pior-conselho", title: "O Pior Conselho Possível", description: "Pede ajuda. Vence quem der o pior conselho." },
+        ]
+      },
+      {
+        id: "debates-votacoes",
+        title: "Debates & Votações",
+        templates: [
+          { id: "tribunal-publico", title: "O Tribunal Público", description: "Lança um debate. Obrigatório votar para poder comentar." },
+          { id: "batalha-eliminacao", title: "Batalha de Eliminação", description: "Survivor diário. A comunidade vota em quem quer salvar." },
+        ]
+      },
+      {
+        id: "puzzles-grupo",
+        title: "Puzzles de Grupo",
+        templates: [
+          { id: "mente-colmeia", title: "A Mente Colmeia", description: "Lista fechada. Só 1 tentativa para adivinhar os slots em falta." },
+        ]
+      }
+    ]
   }
 ];
 
@@ -230,13 +268,11 @@ export default function ModoPage() {
   const router = useRouter();
   
   // GESTÃO DO FLUXO (WIZARD)
-  // Passo 1: Escolher Raiz | Passo 2: Escolher Modelo | Passo 3: Escolher Template
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedRootId, setSelectedRootId] = useState<string | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
-  // Auxiliares para encontrar os objetos selecionados
   const currentRoot = quizTree.find(r => r.id === selectedRootId);
   const currentModel = currentRoot?.models.find(m => m.id === selectedModelId);
 
@@ -311,7 +347,6 @@ export default function ModoPage() {
           </div>
 
           <ul className="flex flex-col gap-3" role="list">
-            {/* RENDERIZAR PASSO 1: RAÍZES */}
             {step === 1 && quizTree.map((root) => {
               const isSelected = selectedRootId === root.id;
               return (
@@ -340,7 +375,6 @@ export default function ModoPage() {
               );
             })}
 
-            {/* RENDERIZAR PASSO 2: MODELOS */}
             {step === 2 && currentRoot?.models.map((model) => {
               const isSelected = selectedModelId === model.id;
               return (
@@ -364,7 +398,6 @@ export default function ModoPage() {
               );
             })}
 
-            {/* RENDERIZAR PASSO 3: TEMPLATES */}
             {step === 3 && currentModel?.templates.map((template) => {
               const isSelected = selectedTemplateId === template.id;
               return (
