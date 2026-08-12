@@ -8,7 +8,8 @@ type Props = { index: number; onUpdate: (isValid: boolean, data: any) => void; }
 export default function QualVerdadeiroInput({ index, onUpdate }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [imagensUrls, setImagensUrls] = useState<(string | null)>([null, null, null, null]);
+  // CORREÇÃO AQUI: adicionado o [] para definir que é um array
+  const [imagensUrls, setImagensUrls] = useState<(string | null)[]>([null, null, null, null]);
   const [correctAnswer, setCorrectAnswer] = useState<number>(0);
   
   // Gere qual dos 4 slots está a ser editado
