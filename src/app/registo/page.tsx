@@ -79,7 +79,6 @@ export default function RegistoPage() {
 
       const userDoc = await getDoc(doc(db, "users", user.uid));
 
-      // NOVA VERIFICAÇÃO: Garante que só avança se o perfil existir E tiver um username
       if (userDoc.exists() && userDoc.data().username) {
         router.push("/feed"); 
       } else {
@@ -131,10 +130,10 @@ export default function RegistoPage() {
     }
   };
 
-  // ECRÃ DE FINALIZAÇÃO GOOGLE
   if (googleUserPendente) {
     return (
-      <div className="flex min-h-dvh flex-col px-6 py-12 sm:mx-auto sm:max-w-md">
+      // LARGURA UNIFORMIZADA NO PENDENTE
+      <div className="flex min-h-dvh w-full flex-col px-6 py-12 sm:mx-auto sm:max-w-[600px] bg-gray-50/50">
         <h1 className="text-3xl font-bold text-foreground mb-2">Quase lá!</h1>
         <p className="text-sm text-muted mb-8">Como usaste o Google, só precisamos que escolhas o teu @username e a data de nascimento.</p>
         
@@ -156,7 +155,8 @@ export default function RegistoPage() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col px-6 py-8 sm:mx-auto sm:max-w-md">
+    // LARGURA UNIFORMIZADA PRINCIPAL
+    <div className="flex min-h-dvh w-full flex-col px-6 py-8 sm:mx-auto sm:max-w-[600px] bg-gray-50/50">
       <header className="mb-6 flex items-center">
         <Link href="/" className="inline-flex size-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-muted transition-colors hover:bg-gray-50 active:scale-95 shadow-sm">
           <svg aria-hidden xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-5"><path d="M19 12H5" /><path d="M12 19l-7-7 7-7" /></svg>
@@ -183,17 +183,17 @@ export default function RegistoPage() {
       )}
 
       <form onSubmit={handleRegisto} className="flex flex-col gap-4">
-        <input type="text" placeholder="O teu nome" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-4 text-sm text-foreground outline-none focus:border-accent focus:ring-1 focus:ring-accent shadow-sm" />
+        <input type="text" placeholder="O teu nome" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-4 text-sm text-foreground outline-none focus:border-accent shadow-sm" />
         
         <div className="relative">
           <span className="absolute left-4 top-4 text-muted">@</span>
-          <input type="text" placeholder="username" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-white py-4 pl-9 pr-4 text-sm text-foreground outline-none focus:border-accent focus:ring-1 focus:ring-accent shadow-sm" />
+          <input type="text" placeholder="username" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-white py-4 pl-9 pr-4 text-sm text-foreground outline-none focus:border-accent shadow-sm" />
         </div>
 
-        <input type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-4 text-sm text-muted outline-none focus:border-accent focus:ring-1 focus:ring-accent shadow-sm" />
+        <input type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-4 text-sm text-muted outline-none focus:border-accent shadow-sm" />
         
-        <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-4 text-sm text-foreground outline-none focus:border-accent focus:ring-1 focus:ring-accent shadow-sm" />
-        <input type="password" placeholder="Password (mínimo 6 letras/números)" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-4 text-sm text-foreground outline-none focus:border-accent focus:ring-1 focus:ring-accent shadow-sm" />
+        <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-4 text-sm text-foreground outline-none focus:border-accent shadow-sm" />
+        <input type="password" placeholder="Password (mínimo 6 caracteres)" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-4 text-sm text-foreground outline-none focus:border-accent shadow-sm" />
 
         <button type="submit" disabled={loading} className="mt-4 inline-flex min-h-14 w-full items-center justify-center rounded-2xl bg-accent px-6 font-semibold text-white transition-colors hover:bg-accent-hover active:scale-[0.98] disabled:opacity-50 shadow-sm">
           {loading ? "A criar conta..." : "Registar"}

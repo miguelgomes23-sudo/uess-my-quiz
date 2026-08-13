@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-// 🚨 MUDANÇA: Retirámos o Popup e adicionámos o Redirect e a verificação
-import { signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth";
+// Usamos agora o signInWithPopup (igual ao Registo) para evitar falhas de redirecionamento
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
 export default function LoginPage() {
@@ -16,43 +16,39 @@ export default function LoginPage() {
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 1. ESPERA PELO RESULTADO DO REDIRECIONAMENTO DO GOOGLE
+  // 1. VERIFICAÇÃO AUTOMÁTICA E INTELIGENTE
   useEffect(() => {
-    const verificarLoginGoogle = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-          router.push("/feed"); // Sucesso: Vai para o feed
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // Verifica se a conta já tem o registo completo na base de dados
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists() && userDoc.data().username) {
+              router.push("/feed"); // Tudo OK, vai para o Feed!
+            } else {
+              router.push("/registo"); // É novo? Vai para o Registo escolher o username!
+            }
         }
-      } catch (error) {
-        console.error("Erro após redirecionamento do Google:", error);
-        setErro("Falha ao entrar com o Google.");
-      }
-    };
-    verificarLoginGoogle();
-    
-    // Bónus: Se já tiver a sessão iniciada (guardada no telemóvel), manda logo para o feed
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) router.push("/feed");
     });
     return () => unsubscribe();
   }, [router]);
 
-  // 2. LOGIN COM GOOGLE (Agora usa Redirect à prova de telemóvel)
+  // 2. LOGIN COM GOOGLE (Sem Redirects fantasma)
   const handleGoogleLogin = async () => {
     try {
       setErro("");
-      setLoading(true); // O ecrã vai mudar para a página da Google
+      setLoading(true); 
       const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
+      await signInWithPopup(auth, provider);
+      // Não é preciso fazer router.push aqui. O useEffect em cima deteta 
+      // automaticamente o sucesso do login e redireciona a pessoa!
     } catch (error: any) {
       console.error("Erro ao iniciar Google Login:", error);
-      setErro("Falha ao redirecionar para o Google.");
+      setErro("Falha ao entrar com o Google.");
       setLoading(false);
     }
   };
 
-  // 3. LOGIN COM EMAIL OU USERNAME (Mantém-se igual)
+  // 3. LOGIN COM EMAIL OU USERNAME
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErro("");
@@ -80,7 +76,7 @@ export default function LoginPage() {
       }
 
       await signInWithEmailAndPassword(auth, emailParaLogin, password);
-      router.push("/feed");
+      // O useEffect trata de redirecionar automaticamente assim que der sucesso!
 
     } catch (error: any) {
       console.error("Erro no login:", error);
@@ -89,13 +85,13 @@ export default function LoginPage() {
       } else {
         setErro("Email, username ou password incorretos.");
       }
-    } finally {
-      setLoading(false);
+      setLoading(false); // Só desativa o loading se der erro, para não piscar.
     }
   };
 
   return (
-    <div className="flex min-h-dvh flex-col px-6 py-12 sm:mx-auto sm:max-w-md justify-center bg-background">
+    // LARGURA UNIFORMIZADA: max-w-[600px]
+    <div className="flex min-h-dvh w-full flex-col px-6 py-12 sm:mx-auto sm:max-w-[600px] justify-center bg-gray-50/50">
       <header className="mb-8 flex flex-col gap-2">
         <h1 className="text-3xl font-bold text-foreground">Bem-vindo de volta</h1>
         <p className="text-sm text-muted">Faz login para veres o teu feed e criares quizzes.</p>
@@ -115,7 +111,7 @@ export default function LoginPage() {
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
           </svg>
-          {loading ? "A redirecionar..." : "Entrar com Google"}
+          {loading ? "A processar..." : "Entrar com Google"}
         </button>
       </div>
 
@@ -138,7 +134,7 @@ export default function LoginPage() {
           value={identificador}
           onChange={(e) => setIdentificador(e.target.value)}
           required
-          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-sm font-medium text-foreground outline-none transition-colors focus:bg-white focus:border-accent shadow-sm" 
+          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-4 text-sm font-medium text-foreground outline-none transition-colors focus:border-accent shadow-sm" 
         />
         <input 
           type="password" 
@@ -146,7 +142,7 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-sm font-medium text-foreground outline-none transition-colors focus:bg-white focus:border-accent shadow-sm" 
+          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-4 text-sm font-medium text-foreground outline-none transition-colors focus:border-accent shadow-sm" 
         />
 
         <button 

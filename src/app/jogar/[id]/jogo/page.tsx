@@ -18,7 +18,6 @@ function JogoContent() {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Estados do Jogo
   const [perguntaAtual, setPerguntaAtual] = useState(0);
   const [respostas, setRespostas] = useState<any[]>([]);
   const [respostaAtual, setRespostaAtual] = useState<any>(null);
@@ -37,12 +36,11 @@ function JogoContent() {
           if (data.modo === "top-3") {
              setRespostaAtual(["", "", ""]);
           } else if (data.modo === "termometro" && data.perguntas && data.perguntas[0]?.perguntaEditada) {
-             // Começa no meio do termómetro na primeira pergunta
              const p = data.perguntas[0].perguntaEditada;
              setRespostaAtual(Math.floor((p.max + p.min) / 2));
           }
         } else {
-          setQuizData(null); // Quiz não existe
+          setQuizData(null);
         }
       } catch (error) {
         console.error("Erro ao carregar quiz:", error);
@@ -70,7 +68,6 @@ function JogoContent() {
       setRespostas(novasRespostas);
       setPerguntaAtual(prev => prev + 1);
       
-      // Limpa para a próxima pergunta
       if (quizData.modo === "termometro") {
          const p = quizData.perguntas[perguntaAtual + 1].perguntaEditada;
          setRespostaAtual(Math.floor((p.max + p.min) / 2));
@@ -97,14 +94,31 @@ function JogoContent() {
     }
   };
 
+  // NOVA FUNÇÃO: Lógica do botão de Voltar
+  const handleVoltar = () => {
+    if (perguntaAtual === 0) {
+      // Se for a primeira pergunta, sai do quiz e volta ao Feed/Perfil
+      router.back();
+    } else {
+      // Recua uma pergunta
+      const indexAnterior = perguntaAtual - 1;
+      setPerguntaAtual(indexAnterior);
+      
+      // Repõe no ecrã a resposta que a pessoa tinha dado nessa pergunta
+      setRespostaAtual(respostas[indexAnterior]);
+      
+      // Apaga a última resposta do array para podermos gravar de novo ao avançar
+      setRespostas(prev => prev.slice(0, -1));
+    }
+  };
+
   if (loading) {
-    return <div className="flex min-h-dvh items-center justify-center text-muted">A preparar o teu jogo...</div>;
+    return <div className="flex min-h-dvh items-center justify-center bg-gray-50/50 text-muted">A preparar o teu jogo...</div>;
   }
 
-  // Verifica se o quiz é inválido ou está corrompido
   if (!quizData || !quizData.perguntas || quizData.perguntas.length === 0) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center p-6 text-center bg-background">
+      <div className="flex min-h-dvh flex-col items-center justify-center p-6 text-center bg-gray-50/50 w-full sm:mx-auto sm:max-w-[600px]">
         <div className="mb-4 text-6xl drop-shadow-sm">🗑️</div>
         <h1 className="text-2xl font-bold text-foreground">Quiz não encontrado</h1>
         <p className="text-muted mt-2">Este quiz não existe, foi eliminado ou o link está errado.</p>
@@ -115,12 +129,11 @@ function JogoContent() {
     );
   }
 
-  // 🚨 CORREÇÃO PRINCIPAL AQUI: Ler `perguntaEditada` que vem do teu PerguntaCard 
   const pAtualInteira = quizData.perguntas[perguntaAtual];
   const pAtual = pAtualInteira.perguntaEditada;
   
   if (!pAtual) {
-     return <div className="flex min-h-dvh items-center justify-center text-red-500">Erro: Pergunta corrompida.</div>;
+     return <div className="flex min-h-dvh items-center justify-center text-red-500 bg-gray-50/50 w-full sm:mx-auto sm:max-w-[600px]">Erro: Pergunta corrompida.</div>;
   }
 
   const isUltimaPergunta = perguntaAtual === quizData.quantidade - 1;
@@ -139,7 +152,7 @@ function JogoContent() {
                 onClick={() => setRespostaAtual(index)}
                 className={`flex min-h-16 w-full items-center justify-between rounded-xl border px-5 text-left text-base font-semibold transition-all active:scale-[0.98] ${
                   isSelected
-                    ? "border-accent bg-accent/5 text-foreground shadow-sm"
+                    ? "border-accent bg-accent/10 text-foreground shadow-sm"
                     : "border-gray-200 bg-gray-50 text-muted hover:border-gray-300 hover:text-foreground"
                 }`}
               >
@@ -209,7 +222,7 @@ function JogoContent() {
             value={respostaAtual || ""}
             onChange={(e) => setRespostaAtual(e.target.value)}
             placeholder="A tua resposta..." 
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-lg font-semibold text-foreground outline-none transition-colors focus:bg-white focus:border-accent focus:ring-1 focus:ring-accent shadow-sm"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-lg font-semibold text-foreground outline-none transition-colors focus:bg-white focus:border-accent shadow-sm"
           />
         </div>
       );
@@ -255,7 +268,7 @@ function JogoContent() {
               onChange={(e) => setRespostaAtual(Number(e.target.value))}
               className="w-full flex-1 accent-accent cursor-pointer" 
             />
-            <div className="flex shrink-0 items-center gap-1 rounded-lg bg-gray-100 border border-gray-200 px-4 py-2 shadow-sm">
+            <div className="flex shrink-0 items-center gap-1 rounded-lg bg-gray-50 border border-gray-200 px-4 py-2 shadow-sm">
               <span className="text-xl font-bold text-accent">{respostaAtual}</span>
               <span className="text-sm font-medium text-muted">{pAtual.unidade}</span>
             </div>
@@ -268,44 +281,52 @@ function JogoContent() {
   };
 
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-background">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(124,58,237,0.15),transparent)]"
-      />
-
-      <main className="relative flex flex-1 flex-col px-6 pb-10 pt-8 sm:mx-auto sm:max-w-md sm:px-8 lg:max-w-lg w-full">
+    <div className="flex min-h-dvh w-full flex-col bg-gray-50/50 sm:mx-auto sm:max-w-[600px]">
+      <main className="flex flex-1 flex-col w-full px-4 pb-10 pt-6">
         
-        <header className="mb-8 flex items-center justify-between">
-          <div className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-bold text-muted shadow-sm">
-            Pergunta <span className="text-accent">{perguntaAtual + 1}</span> de {quizData.quantidade}
-          </div>
-          <div className="h-2 w-1/3 rounded-full bg-gray-200 overflow-hidden">
-            <div 
-              className="h-full rounded-full bg-accent transition-all duration-300 ease-out" 
-              style={{ width: `${((perguntaAtual + 1) / quizData.quantidade) * 100}%` }} 
-            />
+        {/* CABEÇALHO DO JOGO COM BOTÃO DE VOLTAR */}
+        <header className="mb-6 flex items-center justify-between gap-3 px-2">
+          <button
+            onClick={handleVoltar}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-muted shadow-sm transition-colors hover:bg-gray-50 active:scale-95"
+            aria-label="Voltar"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+
+          <div className="flex flex-1 items-center gap-3">
+            <div className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-bold text-muted shadow-sm shrink-0">
+              Pergunta <span className="text-accent">{perguntaAtual + 1}</span> de {quizData.quantidade}
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+              <div 
+                className="h-full rounded-full bg-accent transition-all duration-300 ease-out" 
+                style={{ width: `${((perguntaAtual + 1) / quizData.quantidade) * 100}%` }} 
+              />
+            </div>
           </div>
         </header>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold leading-snug text-foreground sm:text-3xl">
-            {quizData.modo === "lacuna" ? (
-               textoPergunta.split("___").map((parte: string, index: number, arr: any[]) => (
-                 <span key={index}>
-                   {parte}
-                   {index < arr.length - 1 && <span className="text-accent underline text-transparent underline-offset-4 mx-1">___</span>}
-                 </span>
-               ))
-            ) : (
-               textoPergunta
-            )}
-          </h2>
-        </section>
+        <div className="flex flex-col rounded-[32px] bg-white p-6 sm:p-8 shadow-sm border border-gray-200">
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold leading-snug text-foreground sm:text-3xl text-center">
+              {quizData.modo === "lacuna" ? (
+                 textoPergunta.split("___").map((parte: string, index: number, arr: any[]) => (
+                   <span key={index}>
+                     {parte}
+                     {index < arr.length - 1 && <span className="text-accent underline text-transparent underline-offset-4 mx-1">___</span>}
+                   </span>
+                 ))
+              ) : (
+                 textoPergunta
+              )}
+            </h2>
+          </section>
 
-        {renderModoJogo()}
+          {renderModoJogo()}
+        </div>
 
-        <footer className="mt-auto pt-8">
+        <footer className="mt-auto pt-8 px-2">
           <button
             onClick={handleAvancar}
             disabled={!isRespostaValida() || isSaving}
@@ -324,7 +345,7 @@ function JogoContent() {
 
 export default function JogoPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-dvh items-center justify-center text-muted">A carregar...</div>}>
+    <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-gray-50/50 text-muted">A carregar...</div>}>
       <JogoContent />
     </Suspense>
   );

@@ -7,6 +7,10 @@ import PerguntaCard from "@/components/PerguntaCard";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, collection, addDoc } from "firebase/firestore";
 
+// IMPORTAÇÃO DOS COMPONENTES GLOBAIS
+import TopHeader from "@/components/TopHeader";
+import BottomNav from "@/components/BottomNav";
+
 // --- O CATÁLOGO CENTRALIZADO ---
 const TEMPLATES_POR_RAIZ: Record<string, { id: string; nome: string; icone: string }[]> = {
   texto: [
@@ -91,14 +95,13 @@ function PerguntasContent() {
   
   const raizAtual = obterRaizDoModo(modoInicial);
   const templatesDisponiveis = TEMPLATES_POR_RAIZ[raizAtual] || [];
-
-  // A LÓGICA CHAVE: SE FOR DESAFIO, A UI MUDA COMPLETAMENTE
   const isDesafio = raizAtual === "desafios";
 
   const [perguntas, setPerguntas] = useState<PerguntaData[]>([
     { id: crypto.randomUUID(), modo: modoInicial, isValid: false, dados: null }
   ]);
 
+  const [descricaoPost, setDescricaoPost] = useState("");
   const [mostrarErro, setMostrarErro] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -138,6 +141,11 @@ function PerguntasContent() {
     setPerguntas(prev => prev.filter(p => p.id !== id));
   };
 
+  const autoResize = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    e.target.style.height = "auto";
+    e.target.style.height = `${e.target.scrollHeight}px`;
+  };
+
   const handleGerarLink = async () => {
     const todasValidas = perguntas.every(p => p.isValid);
 
@@ -169,6 +177,7 @@ function PerguntasContent() {
         criadorNome: userData.nome,
         criadorUsername: userData.username,
         criadorFoto: userData.fotoPerfil || "",
+        descricao: descricaoPost.trim(), 
         raiz: raizAtual,
         quantidade: perguntasFirebase.length,
         perguntas: perguntasFirebase,
@@ -184,83 +193,93 @@ function PerguntasContent() {
     }
   };
 
+  // LARGURA UNIFORMIZADA: max-w-[600px]
   return (
-    <div className="relative flex min-h-dvh flex-col bg-background">
-      <main className="relative flex flex-1 flex-col px-6 pb-10 pt-6 sm:mx-auto sm:max-w-lg sm:px-8 sm:pt-8 w-full">
-        <header className="flex items-center">
-          <button 
-            onClick={() => router.back()}
-            aria-label="Voltar"
-            className="inline-flex size-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-muted transition-colors hover:bg-gray-50 active:scale-95 shadow-sm"
-          >
-            <svg aria-hidden xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-5"><path d="M19 12H5" /><path d="M12 19l-7-7 7-7" /></svg>
-          </button>
-        </header>
+    <div className="flex min-h-dvh w-full flex-col sm:mx-auto sm:max-w-[600px] bg-gray-50/50">
+      
+      {/* 1. COMPONENTE REUTILIZÁVEL: CABEÇALHO COM SETA DE VOLTAR */}
+      <TopHeader 
+        titulo={isDesafio ? "Criar Desafio" : "Criar Perguntas"} 
+        mostrarVoltar={true} 
+      />
 
-        <section className="mt-8 flex flex-col gap-6 sm:mt-10">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              {isDesafio ? (
-                 <>Cria o teu <span className="text-accent">desafio</span></>
-              ) : (
-                 <>Cria as tuas <span className="text-accent">perguntas</span></>
-              )}
-            </h1>
-            <p className="text-sm text-muted">
-              Começaste no formato <span className="font-medium text-foreground">{obterNomeDoModo(modoInicial)}</span>. {!isDesafio && "Podes misturar!"}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-8 mt-2">
-            {perguntas.map((p, index) => (
-              <div key={p.id} className="relative">
-                {perguntas.length > 1 && !isDesafio && (
-                  <button 
-                    onClick={() => removerPergunta(p.id)}
-                    className="absolute -right-2 -top-2 z-10 flex size-8 items-center justify-center rounded-full bg-red-100 text-red-600 shadow-sm transition-transform hover:scale-110 active:scale-95 border border-red-200"
-                    title="Remover pergunta"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                  </button>
-                )}
-                
-                <PerguntaCard 
-                  index={index} 
-                  modo={p.modo} 
-                  idPergunta={p.id}
-                  onUpdate={handleUpdate} 
-                />
-              </div>
-            ))}
-
-            {/* SE FOR DESAFIO, A CAIXA DE "ADICIONAR PERGUNTA" DESAPARECE! */}
-            {perguntas.length < 12 && !isDesafio && (
-              <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center transition-colors hover:bg-gray-100/50">
-                <div className="flex flex-col gap-1">
-                  <h3 className="text-lg font-bold text-foreground">Adicionar Pergunta</h3>
-                  <p className="text-sm text-muted">Tens {perguntas.length} de 12 perguntas possíveis.</p>
-                </div>
-                
-                <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-center mt-2">
-                  <button 
-                    onClick={adicionarMesmoFormato} 
-                    className="flex-1 rounded-xl bg-accent px-4 py-3.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-accent-hover active:scale-95"
-                  >
-                    + Mesmo Formato
-                  </button>
-                  <button 
-                    onClick={() => setIsModalOpen(true)} 
-                    className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-foreground shadow-sm transition-colors hover:bg-gray-50 active:scale-95"
-                  >
-                    + Outro Formato
-                  </button>
-                </div>
-              </div>
+      <main className="flex flex-col w-full pb-32 px-6 pt-6 gap-6">
+        
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            {isDesafio ? (
+               <>Cria o teu <span className="text-accent">desafio</span></>
+            ) : (
+               <>Cria as tuas <span className="text-accent">perguntas</span></>
             )}
-          </div>
+          </h1>
+          <p className="text-sm text-muted">
+            Começaste no formato <span className="font-medium text-foreground">{obterNomeDoModo(modoInicial)}</span>. {!isDesafio && "Podes misturar!"}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-8 mt-2">
+          {perguntas.map((p, index) => (
+            <div key={p.id} className="relative">
+              {perguntas.length > 1 && !isDesafio && (
+                <button 
+                  onClick={() => removerPergunta(p.id)}
+                  className="absolute -right-2 -top-2 z-10 flex size-8 items-center justify-center rounded-full bg-red-100 text-red-600 shadow-sm transition-transform hover:scale-110 active:scale-95 border border-red-200"
+                  title="Remover pergunta"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              )}
+              
+              <PerguntaCard 
+                index={index} 
+                modo={p.modo} 
+                idPergunta={p.id}
+                onUpdate={handleUpdate} 
+              />
+            </div>
+          ))}
+
+          {perguntas.length < 12 && !isDesafio && (
+            <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed border-gray-300 bg-white p-8 text-center transition-colors hover:bg-gray-50">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-lg font-bold text-foreground">Adicionar Pergunta</h3>
+                <p className="text-sm text-muted">Tens {perguntas.length} de 12 perguntas possíveis.</p>
+              </div>
+              
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-center mt-2">
+                <button 
+                  onClick={adicionarMesmoFormato} 
+                  className="flex-1 rounded-xl bg-accent px-4 py-3.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-accent-hover active:scale-95"
+                >
+                  + Mesmo Formato
+                </button>
+                <button 
+                  onClick={() => setIsModalOpen(true)} 
+                  className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-foreground shadow-sm transition-colors hover:bg-gray-50 active:scale-95"
+                >
+                  + Outro Formato
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <section className="mt-2 flex flex-col gap-2">
+          <label className="text-sm font-bold text-muted ml-1">O que queres dizer sobre isto?</label>
+          <textarea
+            value={descricaoPost}
+            onChange={(e) => {
+              autoResize(e);
+              setDescricaoPost(e.target.value);
+            }}
+            placeholder="Ex: Aposto que ninguém vai acertar na última pergunta! 😂"
+            rows={2}
+            className="w-full resize-none overflow-hidden bg-white rounded-2xl p-4 text-sm font-medium text-foreground outline-none border border-gray-200 focus:border-accent shadow-sm transition-colors placeholder:text-muted/60"
+          />
         </section>
 
-        <footer className="mt-8 flex flex-col gap-4">
+        <footer className="flex flex-col gap-4">
           {mostrarErro && (
             <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-center animate-in fade-in zoom-in duration-200">
               <p className="text-sm font-medium text-red-600">
@@ -282,7 +301,9 @@ function PerguntasContent() {
         </footer>
       </main>
 
-      {/* MODAL MANTÉM-SE IGUAL */}
+      {/* 2. COMPONENTE REUTILIZÁVEL: BARRA DE NAVEGAÇÃO INFERIOR */}
+      <BottomNav />
+
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
           <div className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-[32px] border border-gray-200 bg-white shadow-2xl animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95">

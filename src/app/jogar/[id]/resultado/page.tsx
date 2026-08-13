@@ -7,6 +7,8 @@ import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
+import BottomNav from "@/components/BottomNav";
+
 function ResultadoContent() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -107,12 +109,12 @@ function ResultadoContent() {
   }, [quizId, jogadaId]);
 
   if (loadingAuth || loadingData) {
-    return <div className="flex min-h-dvh items-center justify-center text-muted">A preparar resultados...</div>;
+    return <div className="flex min-h-dvh items-center justify-center bg-gray-50/50 text-muted">A preparar resultados...</div>;
   }
 
   if (!quizData) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center p-6 text-center bg-background">
+      <div className="flex min-h-dvh w-full flex-col items-center justify-center p-6 text-center bg-gray-50/50 sm:mx-auto sm:max-w-[600px]">
         <div className="mb-4 text-6xl drop-shadow-sm">🗑️</div>
         <h1 className="text-2xl font-bold text-foreground">Quiz não encontrado</h1>
         <p className="text-muted mt-2">Este quiz foi eliminado ou o link está errado.</p>
@@ -125,9 +127,7 @@ function ResultadoContent() {
                  (currentUserUid && quizData.criadorUid && currentUserUid === quizData.criadorUid) || 
                  (currentUserUsername && quizData.criadorUsername && currentUserUsername === quizData.criadorUsername);
 
-  // 🚨 CORREÇÃO DA FUNÇÃO DO TEXTO (Separada por modo e sem confundir "null" com a resposta correta)
   const formatarResposta = (modo: string, resposta: any, pRoot: any, isCerta: boolean = false) => {
-    // Se for para mostrar o que o jogador respondeu, e ele não respondeu nada:
     if (!isCerta && (resposta === undefined || resposta === null || resposta === "")) {
       return "Não respondeu";
     }
@@ -153,18 +153,14 @@ function ResultadoContent() {
     return String(alvo);
   };
 
-  // ----------------------------------------------------------------------
-  // VIEW 1: PAINEL DO DONO
-  // ----------------------------------------------------------------------
   if (isDono) {
     const filteredLeaderboard = leaderboard.filter(j => j.nomeJogador?.toLowerCase().includes(searchQuery.toLowerCase()));
     const visibleLeaderboard = filteredLeaderboard.slice(0, visibleCount);
 
     return (
-      // 🚨 CORREÇÃO DA LARGURA (Adicionado w-full)
-      <div className="flex w-full min-h-dvh flex-col bg-gray-50 pb-20 sm:mx-auto sm:max-w-md lg:max-w-lg sm:border-x sm:border-gray-200">
-        <header className="sticky top-0 z-10 flex items-center gap-6 bg-white/90 px-6 py-4 backdrop-blur-md border-b border-gray-200 shadow-sm">
-          <Link href={`/perfil/${quizData.criadorUsername}`} className="rounded-full p-2 hover:bg-gray-100 transition-colors">
+      <div className="flex w-full min-h-dvh flex-col bg-gray-50/50 pb-28 sm:mx-auto sm:max-w-[600px] sm:border-x sm:border-gray-200">
+        <header className="sticky top-0 z-10 flex items-center gap-4 bg-white/90 px-6 py-4 backdrop-blur-md border-b border-gray-200 shadow-sm">
+          <Link href={`/perfil/${quizData.criadorUsername}`} className="rounded-full p-2 hover:bg-gray-100 transition-colors -ml-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><line x1="12" y1="19" x2="5" y2="12"></line><line x1="12" y1="5" x2="5" y2="12"></line></svg>
           </Link>
           <div className="flex flex-col">
@@ -175,8 +171,8 @@ function ResultadoContent() {
 
         <main className="w-full p-6 flex flex-col gap-4">
           <div className="relative">
-            <input type="text" placeholder="Pesquisar por um amigo..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-sm font-medium outline-none focus:border-accent shadow-sm" />
-            <svg className="absolute left-3.5 top-3.5 size-4 text-muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" placeholder="Pesquisar por um amigo..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-xl border border-gray-200 bg-white py-4 pl-10 pr-4 text-sm font-medium outline-none focus:border-accent shadow-sm transition-colors" />
+            <svg className="absolute left-4 top-4 size-4 text-muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </div>
 
           <div className="flex flex-col gap-2 mt-2 w-full">
@@ -210,18 +206,18 @@ function ResultadoContent() {
 
         {selectedJogador && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-end sm:p-0">
-            <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl sm:rounded-b-none sm:h-[85vh] h-[90vh] animate-in slide-in-from-bottom-4 duration-300">
+            <div className="flex w-full max-w-[600px] sm:mx-auto flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl sm:rounded-b-none sm:h-[85vh] h-[90vh] animate-in slide-in-from-bottom-4 duration-300">
               <header className="flex items-center justify-between border-b border-gray-100 p-5 bg-white shrink-0">
                 <div>
                   <h3 className="text-lg font-bold text-foreground">{selectedJogador.nomeJogador}</h3>
                   <p className="text-sm font-semibold text-accent">Pontuação: {selectedJogador.pontos}/{quizData.quantidade}</p>
                 </div>
-                <button onClick={() => setSelectedJogador(null)} className="rounded-full bg-gray-100 p-2 text-muted hover:bg-gray-200">
+                <button onClick={() => setSelectedJogador(null)} className="rounded-full bg-gray-100 p-2 text-muted hover:bg-gray-200 transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
               </header>
               
-              <div className="flex flex-col gap-4 overflow-y-auto p-5 bg-gray-50/50">
+              <div className="flex flex-col gap-4 overflow-y-auto p-5 bg-gray-50/50 pb-10">
                 {selectedJogador.detalhesRespostas.map((detalhe: any, i: number) => (
                   <div key={i} className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                     <p className="text-sm font-semibold text-foreground leading-snug">{detalhe.perguntaRef?.perguntaEditada?.texto || `Pergunta ${i + 1}`}</p>
@@ -233,7 +229,6 @@ function ResultadoContent() {
                       {!detalhe.acertou && (
                         <div className="flex gap-2 mt-2 pt-2 border-t border-red-200/50">
                            <span className="shrink-0">🎯</span>
-                           {/* Aqui passamos true no último parâmetro para ele saber que é para ir buscar a resposta correta e não ler o "null" */}
                            <span><strong className="opacity-70">Correta:</strong> {formatarResposta(quizData.modo, null, detalhe.perguntaRef, true)}</span>
                         </div>
                       )}
@@ -244,6 +239,8 @@ function ResultadoContent() {
             </div>
           </div>
         )}
+
+        <BottomNav />
       </div>
     );
   }
@@ -257,8 +254,7 @@ function ResultadoContent() {
   else if (percentagem < 50) emojiResult = "😅";
 
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden py-10 bg-background">
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(124,58,237,0.15),transparent)]" />
+    <div className="flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden py-10 bg-gray-50/50 sm:mx-auto sm:max-w-[600px]">
       <main className="relative z-10 flex w-full max-w-[420px] flex-col px-6">
         
         {jogadaId && minhaPontuacao !== null && (
@@ -275,7 +271,7 @@ function ResultadoContent() {
 
         {leaderboard.length > 0 && (
           <div className="mb-8 w-full rounded-[24px] border border-gray-200 bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-sm font-bold text-muted uppercase tracking-wider">Top Amigos</h3>
+            <h3 className="mb-4 text-sm font-bold text-muted uppercase tracking-wider">Top Jogadores</h3>
             <ul className="flex flex-col gap-3">
               {leaderboard.slice(0, 10).map((jogada, index) => {
                 const isMe = jogada.id === jogadaId;
@@ -285,7 +281,7 @@ function ResultadoContent() {
                 if (index === 2) medalha = <span className="text-lg w-6 inline-block text-center">🥉</span>;
 
                 return (
-                  <li key={jogada.id} className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${isMe ? "bg-accent/10 border border-accent/20 text-foreground" : "bg-gray-50 border border-transparent text-muted"}`}>
+                  <li key={jogada.id} className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${isMe ? "bg-accent/10 border border-accent/20 text-foreground" : "bg-gray-50 border border-gray-100 text-muted"}`}>
                     <div className="flex items-center gap-3">
                       {medalha}
                       <span className="truncate max-w-[120px]">{jogada.nomeJogador} {isMe && "(Tu)"}</span>
@@ -299,9 +295,10 @@ function ResultadoContent() {
         )}
 
         <div className="flex flex-col items-center gap-4 mt-4">
-          <p className="text-center text-sm text-foreground font-medium">Achas que os teus amigos te conhecem melhor?</p>
-          <Link href="/criar/modo" className="inline-flex min-h-16 w-full items-center justify-center rounded-2xl bg-foreground px-6 text-lg font-bold text-white shadow-sm transition-transform hover:bg-foreground/90 active:scale-[0.98]">
-            Cria o teu Quiz Agora
+          <p className="text-center text-sm text-foreground font-medium">Gostaste? Cria a tua própria publicação agora!</p>
+          {/* O BOTÃO AGORA TEM A CLASSE bg-accent E hover:bg-accent-hover */}
+          <Link href="/criar/modo" className="inline-flex min-h-16 w-full items-center justify-center rounded-2xl bg-accent px-6 text-lg font-bold text-white shadow-sm transition-transform hover:bg-accent-hover active:scale-[0.98]">
+            Criar o teu Quiz Agora
           </Link>
           <Link href="/feed" className="text-sm font-medium text-muted underline decoration-gray-300 underline-offset-4 transition-colors hover:text-foreground hover:decoration-gray-400 mt-2">
             Voltar ao Feed
@@ -314,7 +311,7 @@ function ResultadoContent() {
 
 export default function ResultadoPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-dvh items-center justify-center text-muted">A carregar...</div>}>
+    <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-gray-50/50 text-muted">A carregar...</div>}>
       <ResultadoContent />
     </Suspense>
   );
